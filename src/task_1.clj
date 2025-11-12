@@ -37,9 +37,10 @@
     (= n 0) '("")
     (= n 1) (map str alphabet)
     :else
-    (reduce (fn [acc prefix] (concat acc (reduce (fn [a c] (if (not= (last prefix) c) (cons (str prefix c) a) a)) '() alphabet)))
-      '()
-      (correct_strings_2 alphabet (dec n)))))
+    (reduce (fn [acc prefix]
+              (reduce (fn [acc2 c] (conj acc2 (str prefix c))) acc (filter (fn [char] (not= (last prefix) char)) alphabet)))
+            '()
+            (correct_strings_2 alphabet (dec n)))))
 
 
 (defn -main []
@@ -47,5 +48,5 @@
   (println "1.2:" (correct_strings_tail '(\a \b \c) 3))
   (println "1.3 map:" (my_map (fn [elem] (* 2 elem)) [1 2 3 4 5 6 7 8 9 10]))
   (println "1.3 filter:" (my_filter (fn [elem] (= 0 (mod elem 2))) [1 2 3 4 5 6 7 8 9 10]))
-  (println "1.4:" (correct_strings_2 '(\a \b \c) 3))
+  (println "1.4:" (correct_strings_2 '(\a \b \c) 2))
   )
