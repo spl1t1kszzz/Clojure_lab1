@@ -48,5 +48,5 @@
   (println "1.2:" (correct_strings_tail '(\a \b \c) 3))
   (println "1.3 map:" (my_map (fn [elem] (* 2 elem)) [1 2 3 4 5 6 7 8 9 10]))
   (println "1.3 filter:" (my_filter (fn [elem] (= 0 (mod elem 2))) [1 2 3 4 5 6 7 8 9 10]))
-  (println "1.4:" (correct_strings_2 '(\a \b \c) 2))
+  (println "1.4:" (correct_strings_2 '(\a \b \c) 3 ))
   )

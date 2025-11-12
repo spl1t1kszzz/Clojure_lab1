@@ -12,16 +12,16 @@
   (memoize (integrate f h)))
 
 ; 2.2
-(defn integrate-seq [f h]
+(defn integrate_seq [f h]
   (map second (iterate (fn [[x acc]] [(+ x h) (+ acc (* h 0.5 (+ (f x) (f (+ x h)))))]) [0 0])))
 
-(defn make-integral [f h]
-  (let [seqF (integrate-seq f h)]
-    (fn [x] (nth seqF (int (/ x h))))))
+(defn calculate_integral [f h]
+  (let [i_seq (integrate_seq f h)]
+    (fn [x] (nth i_seq (int (/ x h))))))
 
 
 (defn -main []
-  (let [h 0.00001 F (m_integrate square h) F1 (make-integral square h)]
+  (let [h 0.00001 F (m_integrate square h) F1 (calculate_integral square h)]
     (time (println (F 10)))
     (time (println (F 10)))
     (time (println "F(10):" (F1 10)))
