@@ -4,12 +4,13 @@
 
 ; left = (f(0) + f(x)) / 2
 ; right = sum (f(x_i))
-(defn integrate [f h]
-  (fn [x] (let [left (/ (+ (f 0) (f x)) 2) right (reduce (fn [acc t] (+ acc (f t))) 0 (range 0 (+ x h) h))]
-            (* h (+ left right)))))
+
 ; 2.1
 (defn m_integrate [f h]
-  (memoize (integrate f h)))
+  (let [f_memo (memoize f)]
+    (fn [x]
+      (let [left (/ (+ (f_memo 0) (f_memo x)) 2) right (reduce (fn [acc t] (+ acc (f_memo t))) 0 (range 0 (+ x h) h))]
+        (* h (+ left right))))))
 
 ; 2.2
 (defn integrate_seq [f h]
@@ -24,6 +25,8 @@
   (let [h 0.00001 F (m_integrate square h) F1 (calculate_integral square h)]
     (time (println (F 10)))
     (time (println (F 10)))
+    (time (println (F 9)))
+    (time (println (F 11)))
     (time (println "F(10):" (F1 10)))
     (time (println "F(100):" (F1 100)))
     (time (println "F(90):" (F1 90)))

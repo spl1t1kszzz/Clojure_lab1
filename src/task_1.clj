@@ -37,10 +37,13 @@
     (= n 0) '("")
     (= n 1) (map str alphabet)
     :else
-    (reduce (fn [acc prefix]
-              (reduce (fn [acc2 c] (conj acc2 (str prefix c))) acc (filter (fn [char] (not= (last prefix) char)) alphabet)))
-            '()
-            (correct_strings_2 alphabet (dec n)))))
+    (loop [acc (map str alphabet) k 1]
+      (if (= k n)
+        acc
+        (recur (reduce (fn [new-acc p] (reduce (fn [new-acc2 c] (if (not= (last p) c) (conj new-acc2 (str p c)) new-acc2)) new-acc alphabet)) '() acc)
+          (inc k))))))
+
+
 
 
 (defn -main []
