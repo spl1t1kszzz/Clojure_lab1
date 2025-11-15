@@ -3,7 +3,7 @@
 ; 1.1
 (defn correct_strings [alphabet n]
   (cond
-    (= n 0) '("")
+    (= n 0) '()
     (= n 1) (map str alphabet)
     :else   (for [p (correct_strings alphabet (dec n))
                   c alphabet
@@ -14,7 +14,7 @@
 ; 1.2
 (defn correct_strings_tail [alphabet n]
   (if (= n 0)
-    '("")
+    '()
     (loop [acc (map str alphabet) k 1]
       (if (= k n)
         acc
@@ -34,7 +34,7 @@
 ; 1.4
 (defn correct_strings_2 [alphabet n]
   (cond
-    (= n 0) '("")
+    (= n 0) '()
     (= n 1) (map str alphabet)
     :else
     (loop [acc (map str alphabet) k 1]
