@@ -27,15 +27,15 @@
   (is (= true (replace_not (not_ false)))))
 
 (deftest test-distribute
-  ; (p ∨ q) ∧ r → (p ∧ r) ∨ (q ∧ r)
+  ; (a ∨ b) ∧ c → (a ∧ c) ∨ (b ∧ c)
   (is (= (or_ (and_ 'a 'c) (and_ 'b 'c))
          (distribute (or_ 'a 'b) 'c)))
 
-  ; p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
+  ; a ∧ (b ∨ c) → (a ∧ b) ∨ (a ∧ c)
   (is (= (or_ (and_ 'a 'b) (and_ 'a 'c))
          (distribute 'a (or_ 'b 'c))))
 
-  ; (p ∨ q) ∧ (r ∨ s)
+  ; (a ∨ b) ∧ (c ∨ d) → (a ∧ c) ∨ (a ∧ d) ∨ (b ∧ c) ∨ (b ∧ d)
   (is (= (or_ (and_ 'a 'c) (and_ 'a 'd) (and_ 'b 'c) (and_ 'b 'd))
          (distribute (or_ 'a 'b) (or_ 'c 'd)))))
 
@@ -44,6 +44,7 @@
   (is (= (or_ (not_ 'a) 'b) (to-dnf (impl_ 'a 'b)))))
 
 (deftest test-to-dnf-with-and-or
+  ; (a → b) ∧ c ≡ (¬a ∧ c) ∨ (b ∧ c)
   (is (= (or_ (and_ (not_ 'a) 'c) (and_ 'b 'c)) (to-dnf (and_ (impl_ 'a 'b) 'c)))))
 
 (deftest test-to-dnf-deep
