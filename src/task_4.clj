@@ -5,7 +5,6 @@
   [name]
   (symbol name))
 
-
 (defn and_
   "Конъюнкция: (and_ a b c) => [:and a b c]"
   [& args]
@@ -85,14 +84,11 @@
         (is_or_node e) (apply and_ (map #(replace_not (not_ %)) (rest e)))
         :else (not_ (replace_not e))))
 
-    (is_and_node expr)
-    (apply and_ (map replace_not (rest expr)))
+    (is_and_node expr) (apply and_ (map replace_not (rest expr)))
 
-    (is_or_node expr)
-    (apply or_ (map replace_not (rest expr)))
+    (is_or_node expr) (apply or_ (map replace_not (rest expr)))
 
-    (is_node expr)
-    (into [(op expr)] (map replace_not (rest expr)))
+    (is_node expr) (into [(op expr)] (map replace_not (rest expr)))
 
     :else expr))
 
@@ -108,7 +104,7 @@
     :else
     (and_ a b)))
 
-(defn dnf*
+(defn dnf_
   "Возвращает выражение в ДНФ"
   [expr]
   (cond
@@ -116,10 +112,10 @@
 
     (is_not_node expr) expr ; [:not literal]
 
-    (is_or_node expr) (apply or_ (map dnf* (rest expr)))
+    (is_or_node expr) (apply or_ (map dnf_ (rest expr)))
 
     (is_and_node expr)
-    (let [terms (map dnf* (rest expr))]
+    (let [terms (map dnf_ (rest expr))]
       (if (= 1 (count terms))
         (first terms)
         (reduce distribute (first terms) (rest terms))))
@@ -133,8 +129,7 @@
   (cond
     (is_literal expr) expr
     (is_not_node expr)
-    (let [[_ e] expr
-          e' (simplify e)]
+    (let [[_ e] expr e' (simplify e)]
       (if (boolean? e')
         (not e')
         [:not e']))
@@ -142,9 +137,7 @@
     (is_and_node expr)
     (let [args (->> (rest expr)
                     (map simplify)
-                    (mapcat #(if (is_and_node %)
-                               (rest %)
-                               [%]))
+                    (mapcat #(if (is_and_node %) (rest %) [%]))
                     (remove true?)
                     distinct)]
       (cond
@@ -177,7 +170,7 @@
   (-> expr
       remove_impl
       replace_not
-      dnf*
+      dnf_
       simplify))
 
 (defn substitute-and-dnf
