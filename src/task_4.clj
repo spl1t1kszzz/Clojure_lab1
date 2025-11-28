@@ -132,9 +132,9 @@
   [expr]
   (cond
     (is_literal expr) expr
-
     (is_not_node expr)
-    (let [[_ e] expr e' (simplify e)]
+    (let [[_ e] expr
+          e' (simplify e)]
       (if (boolean? e')
         (not e')
         [:not e']))
@@ -144,8 +144,9 @@
                     (map simplify)
                     (mapcat #(if (is_and_node %)
                                (rest %)
-                               [%])))
-          args (remove true? args)]
+                               [%]))
+                    (remove true?)
+                    distinct)]
       (cond
         (some false? args) false
         (empty? args) true
@@ -155,20 +156,19 @@
     (is_or_node expr)
     (let [args (->> (rest expr)
                     (map simplify)
-                    (mapcat #(if (is_or_node %)
-                               (rest %)
-                               [%])))
-          args (remove false? args)]
+                    (mapcat #(if (is_or_node %) (rest %) [%]))
+                    (remove false?)
+                    distinct)]
       (cond
         (some true? args) true
         (empty? args) false
         (= 1 (count args)) (first args)
         :else (into [:or] args)))
 
-    (is_node expr)
-    (into [(op expr)] (map simplify (rest expr)))
+    (is_node expr) (into [(op expr)] (map simplify (rest expr)))
 
     :else expr))
+
 
 
 (defn to-dnf

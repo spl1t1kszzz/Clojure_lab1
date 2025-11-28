@@ -17,19 +17,12 @@
          (substitute (and_ 'a 'b) 'a true))))
 
 (deftest test-to-dnf-simple
-  ;; a → b ≡ ¬a ∨ b
+  ; a → b ≡ ¬a ∨ b
   (is (= (or_ (not_ 'a) 'b) (to-dnf (impl_ 'a 'b)))))
 
 (deftest test-to-dnf-with-and-or
-  (is (= (or_ (and_ (not_ 'a) 'c) (and_ 'b 'c)) (to-dnf (and_ (impl_ 'a 'b) 'c)))))
 
-(deftest test-substitute-and-dnf
-  ;; (a → b) ∧ c, подставим a = true:
-  ;; (true → b) ∧ c ≡ (¬true ∨ b) ∧ c ≡ (false ∨ b) ∧ c ≡ b ∧ c
-  (is (= (and_ 'b 'c)
-         (substitute-and-dnf (and_ (impl_ 'a 'b) 'c)
-                             'a
-                             true))))
+  (is (= (or_ (and_ (not_ 'a) 'c) (and_ 'b 'c)) (to-dnf (and_ (impl_ 'a 'b) 'c)))))
 
 (deftest test-morgan_rules
   ;; ¬(a ∧ b) → (¬a ∨ ¬b)
@@ -56,3 +49,17 @@
   ;; (p ∨ q) ∧ (r ∨ s)
   (is (= (or_ (and_ 'a 'c) (and_ 'a 'd) (and_ 'b 'c) (and_ 'b 'd))
          (distribute (or_ 'a 'b) (or_ 'c 'd)))))
+
+(deftest test-to-dnf-deep
+  ;; F = ¬((X → Y) ∨ ¬(Y → Z))
+  ;; F = (X ∧ ¬Y) ∨ (X ∧ ¬Y ∧ Z)
+  (is (= (or_ (and_ 'x (not_ 'y)) (and_ 'x (not_ 'y) 'z))
+         (to-dnf (not_ (or_ (impl_ 'x 'y) (not_ (impl_ 'y 'z))))))))
+
+(deftest test-substitute-and-dnf-basic
+  ; (a → b) ∧ c, a = true
+  ; (true → b) ∧ c
+  ; (¬true ∨ b) ∧ c
+  ; (false ∨ b) ∧ c
+  ; b ∧ c
+  (is (= (and_ 'b 'c) (substitute-and-dnf (and_ (impl_ 'a 'b) 'c) 'a true))))
