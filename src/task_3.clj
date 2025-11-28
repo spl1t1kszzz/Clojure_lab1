@@ -8,10 +8,10 @@
         (recur (drop block_size blocks)
                (conj futures fut))))))
 
-(defn lazy-parallel-filter [pred coll block-size]
+(defn lazy_parallel_filter [pred coll block_size]
   (letfn [(spawn_futures [s]
             (if-let [blocks (seq s)]
-              (cons (future (doall (filter pred (take block-size blocks)))) (spawn_futures (drop block-size blocks)))
+              (cons (future (doall (filter pred (take block_size blocks)))) (spawn_futures (drop block_size blocks)))
               ()))
 
           (collect_results [fs]
@@ -23,11 +23,11 @@
     (collect_results (spawn_futures coll))))
 
 
-(defn is_prime [n]
+(defn prime [n]
   (if (< n 2)
     false
     (let [_ (Thread/sleep 1)
-          is-prime (cond
+          is_prime (cond
                      (< n 2) false
                      (= n 2) true
                      (even? n) false
@@ -38,22 +38,22 @@
                            (> i limit) true
                            (zero? (mod n i)) false
                            :else (recur (inc i))))))]
-      is-prime)))
+      is_prime)))
 
-(defn run_test [block-size]
+(defn run_test [block_size]
   (let [data (range 1 2001)
-        pred is_prime]
+        pred prime]
 
     (println "Обычный filter")
     (let [res (time (doall (filter pred data)))]
       (println (take 20 res)))
 
     (println "Параллельный filter")
-    (let [res (time (parallel_filter pred data block-size))]
+    (let [res (time (parallel_filter pred data block_size))]
       (println (take 20 res)))
 
     (println "Ленивый параллельный filter")
-    (let [res (time (doall (lazy-parallel-filter pred data block-size)))]
+    (let [res (time (doall (lazy_parallel_filter pred data block_size)))]
       (println (take 20 res)))))
 
 
