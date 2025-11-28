@@ -3,37 +3,56 @@
             [task-4 :refer :all]))
 
 (deftest test-constructors
-  ;(is (= 'p (var 'p)))
+  (is (= (symbol "a") (make-var "a")))
+  (is (= [:and 'a 'b] (and_ 'a 'b)))
+  (is (= [:or  'a 'b 'c] (or_ 'a 'b 'c)))
+  (is (= [:not 'a] (not_ 'a)))
+  (is (= [:impl 'a 'b] (impl_ 'a 'b))))
 
-
-  (is (= [:and 'p 'q] (and* 'p 'q)))
-  (is (= [:or 'p 'q 'r] (or* 'p 'q 'r)))
-  (is (= [:not 'p] (not* 'p)))
-  (is (= [:impl 'p 'q] (impl* 'p 'q))))
 
 (deftest test-substitute
-  (is (= true (substitute 'p 'p true)))
-  (is (= 'q (substitute 'q 'p true)))
-  (is (= [:and true 'q]
-         (substitute (and* 'p 'q) 'p true))))
+  (is (= true (substitute 'a 'a true)))
+  (is (= 'b (substitute 'b 'a true)))
+  (is (= [:and true 'b]
+         (substitute (and_ 'a 'b) 'a true))))
 
 (deftest test-to-dnf-simple
-  ;; p → q  эквивалентно  ¬p ∨ q   - уже ДНФ
-  (is (= (or* (not* 'p) 'q)
-         (to-dnf (impl* 'p 'q)))))
+  ;; a → b ≡ ¬a ∨ b
+  (is (= (or_ (not_ 'a) 'b) (to-dnf (impl_ 'a 'b)))))
 
 (deftest test-to-dnf-with-and-or
-  ;; (p → q) ∧ r  => (¬p ∨ q) ∧ r => (¬p ∧ r) ∨ (q ∧ r)
-  (is (= (or* (and* (not* 'p) 'r)
-              (and* 'q 'r))
-         (to-dnf (and* (impl* 'p 'q) 'r)))))
+  (is (= (or_ (and_ (not_ 'a) 'c) (and_ 'b 'c)) (to-dnf (and_ (impl_ 'a 'b) 'c)))))
 
 (deftest test-substitute-and-dnf
-  ;; (p → q) ∧ r, подставим p = true:
-  ;; (true → q) ∧ r ≡ (¬true ∨ q) ∧ r ≡ (false ∨ q) ∧ r ≡ q ∧ r
-  (is (= (and* 'q 'r)
-         (substitute-and-dnf (and* (impl* 'p 'q) 'r)
-                             'p
+  ;; (a → b) ∧ c, подставим a = true:
+  ;; (true → b) ∧ c ≡ (¬true ∨ b) ∧ c ≡ (false ∨ b) ∧ c ≡ b ∧ c
+  (is (= (and_ 'b 'c)
+         (substitute-and-dnf (and_ (impl_ 'a 'b) 'c)
+                             'a
                              true))))
 
+(deftest test-morgan_rules
+  ;; ¬(a ∧ b) → (¬a ∨ ¬b)
+  (is (= (or_ (not_ 'a) (not_ 'b)) (replace_not (not_ (and_ 'a 'b)))))
 
+  (is (= (and_ (not_ 'a) (not_ 'b)) (replace_not (not_ (or_ 'a 'b)))))
+
+  (is (= 'a (replace_not (not_ (not_ 'a)))))
+
+  (is (= false (replace_not (not_ true))))
+
+  (is (= true (replace_not (not_ false)))))
+
+
+(deftest test-distribute
+  ;; (p ∨ q) ∧ r → (p ∧ r) ∨ (q ∧ r)
+  (is (= (or_ (and_ 'a 'c) (and_ 'b 'c))
+         (distribute (or_ 'a 'b) 'c)))
+
+  ;; p ∧ (q ∨ r) → (p ∧ q) ∨ (p ∧ r)
+  (is (= (or_ (and_ 'a 'b) (and_ 'a 'c))
+         (distribute 'a (or_ 'b 'c))))
+
+  ;; (p ∨ q) ∧ (r ∨ s)
+  (is (= (or_ (and_ 'a 'c) (and_ 'a 'd) (and_ 'b 'c) (and_ 'b 'd))
+         (distribute (or_ 'a 'b) (or_ 'c 'd)))))

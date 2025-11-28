@@ -1,182 +1,148 @@
 (ns task-4)
 
-;; === Базовые конструкторы ========================================
-
-(defn var
+(defn make-var
   "Создаёт переменную-символ по строке."
   [name]
   (symbol name))
 
-(defn and*
-  "Конъюнкция. Принимает произвольное число аргументов.
-   (and* a b c) => [:and a b c]"
+
+(defn and_
+  "Конъюнкция: (and_ a b c) => [:and a b c]"
   [& args]
   (into [:and] args))
 
-(defn or*
-  "Дизъюнкция. Принимает произвольное число аргументов.
-   (or* a b c) => [:or a b c]"
+(defn or_
+  "Дизъюнкция: (or_ a b c) => [:or a b c]"
   [& args]
   (into [:or] args))
 
-(defn not*
-  "Отрицание."
+(defn not_
+  "Отрицание"
   [e]
   [:not e])
 
-(defn impl*
-  "Импликация a → b."
+(defn impl_
+  "Импликация: a → b"
   [a b]
   [:impl a b])
 
-;; === Вспомогательные функции ======================================
-
-(defn literal?
+(defn is_literal
   "Истинно, если выражение - булева константа или переменная."
   [e]
-  (or (symbol? e)
-      (true? e)
-      (false? e)))
+  (or (symbol? e) (true? e) (false? e)))
 
-(defn node?
+(defn is_node
   "Истинно, если выражение - вектор вида [op & args]."
   [e]
-  (and (vector? e)
-       (keyword? (first e))))
+  (and (vector? e) (keyword? (first e))))
 
 (defn op
   "Возвращает операцию-ключевое слово или nil."
-  [e]
-  (when (node? e) (first e)))
+  [e] (when (is_node e) (first e)))
 
-(defn and-node? [e] (= (op e) :and))
-(defn or-node?  [e] (= (op e) :or))
-(defn not-node? [e] (= (op e) :not))
-(defn impl-node? [e] (= (op e) :impl))
+(defn is_and_node [e] (= (op e) :and))
+(defn is_or_node  [e] (= (op e) :or))
+(defn is_not_node [e] (= (op e) :not))
+(defn is_impl_node [e] (= (op e) :impl))
 
 
 (defn substitute
-  "Подставляет значение value вместо переменной v в выражение expr.
-   value может быть либо булевым значением, либо другим выражением."
+  "Подставляет значение value вместо переменной v в выражение expr."
   [expr v value]
   (cond
-    (symbol? expr) (if (= expr v) value expr)
-    (literal? expr) expr
-    (node? expr) (into [(op expr)]
-                       (map #(substitute % v value) (rest expr)))
+    (is_literal expr) (if (= expr v) value expr)
+    (is_node expr) (into [(op expr)] (map #(substitute % v value) (rest expr)))
     :else expr))
 
 
-(defn elim-impl
+(defn remove_impl
   "Убирает импликации из выражения, переписывая (a → b) как (¬a ∨ b)."
   [expr]
   (cond
-    (literal? expr) expr
-
-    (impl-node? expr)
-    (let [[_ a b] expr]
-      (or* (not* (elim-impl a))
-           (elim-impl b)))
-
-    (node? expr)
-    (into [(op expr)] (map elim-impl (rest expr)))
-
+    (is_literal expr) expr
+    (is_impl_node expr) (let [[_ a b] expr] (or_ (not_ (remove_impl a)) (remove_impl b)))
+    (is_node expr) (into [(op expr)] (map remove_impl (rest expr)))
     :else expr))
 
 
 
-(defn nnf
-  "Приводит выражение к ННФ (отрицания только над литералами)."
+(defn replace_not
+  "Заменяет отрицания по законам де Моргана.
+   Отрицание над литералами обрабатывается напрямую."
   [expr]
   (cond
-    (literal? expr) expr
+    (is_literal expr)
+    expr
 
-    (not-node? expr)
+    (is_not_node expr)
     (let [[_ e] expr]
       (cond
-        (literal? e) [:not e]
-        (not-node? e) (nnf (second e))                 ; ¬¬A => A
-        (and-node? e)                                  ; ¬(A ∧ B) => (¬A ∨ ¬B)
-        (apply or* (map #(nnf (not* %)) (rest e)))
-        (or-node? e)                                   ; ¬(A ∨ B) => (¬A ∧ ¬B)
-        (apply and* (map #(nnf (not* %)) (rest e)))
-        :else (not* (nnf e))))
+        (true? e) false
+        (false? e) true
+        (is_literal e) [:not e]
+        (is_not_node e) (replace_not (second e))
+        (is_and_node e) (apply or_ (map #(replace_not (not_ %)) (rest e)))
+        (is_or_node e) (apply and_ (map #(replace_not (not_ %)) (rest e)))
+        :else (not_ (replace_not e))))
 
-    (and-node? expr)
-    (apply and* (map nnf (rest expr)))
+    (is_and_node expr)
+    (apply and_ (map replace_not (rest expr)))
 
-    (or-node? expr)
-    (apply or* (map nnf (rest expr)))
+    (is_or_node expr)
+    (apply or_ (map replace_not (rest expr)))
 
-    (node? expr)
-    (into [(op expr)] (map nnf (rest expr)))
+    (is_node expr)
+    (into [(op expr)] (map replace_not (rest expr)))
 
     :else expr))
 
 
-(defn distribute-and
-  "Распределяет конъюнкцию по дизъюнкции:
-   (A ∧ (B ∨ C)) и т.п. Возвращает логически эквивалентное выражение."
+
+(defn distribute
+  "Раскрывает скобки по закону дистрибутивности"
   [a b]
   (cond
-    (and (or-node? a) (or-node? b))
-    (apply or*
-           (for [da (rest a)
-                 db (rest b)]
-             (and* da db)))
-
-    (or-node? a)
-    (apply or*
-           (for [da (rest a)]
-             (and* da b)))
-
-    (or-node? b)
-    (apply or*
-           (for [db (rest b)]
-             (and* a db)))
-
+    (and (is_or_node a) (is_or_node b)) (apply or_ (for [da (rest a) db (rest b)] (and_ da db)))
+    (is_or_node a) (apply or_ (for [da (rest a)] (and_ da b)))
+    (is_or_node b) (apply or_ (for [db (rest b)] (and_ a db)))
     :else
-    (and* a b)))
+    (and_ a b)))
 
 (defn dnf*
-  "Предполагает, что expr уже в ННФ. Возвращает выражение в ДНФ."
+  "Возвращает выражение в ДНФ"
   [expr]
   (cond
-    (literal? expr) expr
+    (is_literal expr) expr
 
-    (not-node? expr) expr   ; уже ¬литерал в ННФ
+    (is_not_node expr) expr ; [:not literal]
 
-    (or-node? expr)
-    (apply or* (map dnf* (rest expr)))
+    (is_or_node expr) (apply or_ (map dnf* (rest expr)))
 
-    (and-node? expr)
+    (is_and_node expr)
     (let [terms (map dnf* (rest expr))]
       (if (= 1 (count terms))
         (first terms)
-        (reduce distribute-and (first terms) (rest terms))))
+        (reduce distribute (first terms) (rest terms))))
 
     :else expr))
 
 
 (defn simplify
-  "Упрощает выражение:
-   - сворачивает операции с true/false,
-   - убирает вложенные [:and ... [:and ...] ...] и [:or ... [:or ...] ...]."
+  "Упрощает выражение"
   [expr]
   (cond
-    (literal? expr) expr
+    (is_literal expr) expr
 
-    (not-node? expr)
-    (let [[_ e] expr
-          e' (simplify e)]
+    (is_not_node expr)
+    (let [[_ e] expr e' (simplify e)]
       (if (boolean? e')
         (not e')
         [:not e']))
 
-    (and-node? expr)
+    (is_and_node expr)
     (let [args (->> (rest expr)
                     (map simplify)
-                    (mapcat #(if (and-node? %)
+                    (mapcat #(if (is_and_node %)
                                (rest %)
                                [%])))
           args (remove true? args)]
@@ -186,10 +152,10 @@
         (= 1 (count args)) (first args)
         :else (into [:and] args)))
 
-    (or-node? expr)
+    (is_or_node expr)
     (let [args (->> (rest expr)
                     (map simplify)
-                    (mapcat #(if (or-node? %)
+                    (mapcat #(if (is_or_node %)
                                (rest %)
                                [%])))
           args (remove false? args)]
@@ -199,24 +165,22 @@
         (= 1 (count args)) (first args)
         :else (into [:or] args)))
 
-    (node? expr)
+    (is_node expr)
     (into [(op expr)] (map simplify (rest expr)))
 
     :else expr))
 
 
 (defn to-dnf
-  "Приводит логическое выражение expr к ДНФ.
-   Допускаются операции: :and, :or, :not, :impl."
+  "Приводит логическое выражение expr к ДНФ"
   [expr]
   (-> expr
-      elim-impl
-      nnf
+      remove_impl
+      replace_not
       dnf*
       simplify))
 
 (defn substitute-and-dnf
-  "Подставляет значение value вместо переменной v в выражение expr
-   и приводит результат к ДНФ."
+  "Подставляет значение value вместо переменной v в выражение expr и приводит результат к ДНФ."
   [expr v value]
   (to-dnf (substitute expr v value)))
